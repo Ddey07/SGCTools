@@ -104,5 +104,5 @@ image(as.matrix(Sigma_SE), main="Truth")
 image(as.matrix(ff$cov), main="Estimate")
 }
 \references{
-Dey D., Ghosal R., Merikangas K., Zipunnikov V. (2023) "Covariance Estimation and Principal Component Analysis for Mixed-Type Functional Data with application to mHealth in Mood Disorders" \url{https://arxiv.org/abs/2306.15084}
+Dey D., Ghosal R., Merikangas K., Zipunnikov V. (2024) "Functional Principal Component Analysis for Continuous Non-Gaussian, Truncated, and Discrete Functional Data" Statistics in Medicine, 43, 5431-5445. \doi{10.1002/sim.10240}
 }

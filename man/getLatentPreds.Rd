@@ -4,7 +4,13 @@
 \alias{getLatentPreds}
 \title{Get predictors of latent variables from observed data}
 \usage{
-getLatentPreds(X, type = NULL, lat.cov.est, impute.missing = TRUE)
+getLatentPreds(
+  X,
+  type = NULL,
+  lat.cov.est,
+  impute.missing = TRUE,
+  ridge = 0.05
+)
 }
 \arguments{
 \item{X}{A numeric data matrix (n by p), n is the sample size and p is the number of variables. Binary variables must be coded as 0,1. Ordinal variables with l ordered categories must be coded as 0, 1, 2, ... , (l-1).}
@@ -14,6 +20,8 @@ getLatentPreds(X, type = NULL, lat.cov.est, impute.missing = TRUE)
 \item{lat.cov.est}{The estimate of the latent correlation matrix from \code{fromXtoRMixed}}
 
 \item{impute.missing}{A logical variable indicating whether the missing data will be imputed with Missing at Random assumptions or not.}
+
+\item{ridge}{A non-negative scalar added to the diagonal of the observed-pattern submatrices before each per-subject BLUP solve. This regularizes near-singular solves that can otherwise inflate individual latent predictions to extreme values when the estimated latent correlation is poorly conditioned (e.g. for sparse or binary margins). Defaults to 0.05; set to 0 to reproduce the unregularized behaviour.}
 }
 \value{
 \code{getLatentPreds} returns a n by p matrix containing continuous predictions of observed mixed latent variables.

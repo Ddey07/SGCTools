@@ -1,79 +1,193 @@
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- README.md is generated from README.Rmd. Please edit that file, then run rmarkdown::render("README.Rmd"). -->
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/Ddey07/SGCTools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Ddey07/SGCTools/actions/workflows/R-CMD-check.yaml)
+[![License: GPL
+v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 <!-- badges: end -->
 
-# SGCTools: Analysis tools for multivariate mixed data and continous/truncated/discrete functional data using Semiparametric Gaussian Copula (SGC)
+# SGCTools
 
-The R package `SGCTools` (a) estimates latent correlation for
-multivariate mixed data types; continuous, truncated, ordinal (any
-number of categories), and binary, (b) performs covariance estimation
-and functional principal components analysis for continous, truncated,
-discrete (ordinal/binary) functional data. The methods are described in
-Dey, Zipunnikov (2022) <https://arxiv.org/abs/2205.06868> and Dey,
-Ghosal, Merikangas, and Zipunnikov (2023)
-<https://arxiv.org/abs/2306.15084>
+> Latent correlation, covariance estimation, and functional PCA for
+> **mixed-type data** — continuous, truncated, ordinal, and binary — via
+> the Semiparametric Gaussian Copula (SGC).
+
+Most multivariate and functional methods assume Gaussian (or at least
+continuous) measurements. Real data are rarely so tidy: a single study
+may mix continuous biomarkers, zero-inflated (truncated) activity
+counts, ordinal questionnaire items, and binary indicators. `SGCTools`
+models all of these through a shared **latent Gaussian process**, so you
+can estimate correlations, run PCA, fit regressions, and do functional
+PCA on mixed-type data with one consistent framework.
+
+The methods are described in:
+
+-   Dey, D., Ghosal, R., Merikangas, K., & Zipunnikov, V. (2024).
+    *Functional Principal Component Analysis for Continuous
+    Non-Gaussian, Truncated, and Discrete Functional Data.* **Statistics
+    in Medicine**, 43, 5431–5445. <https://doi.org/10.1002/sim.10240>
+-   Dey, D., & Zipunnikov, V. (2022). *Semiparametric Gaussian Copula
+    Regression modeling for Mixed Data Types (SGCRM).*
+    <https://arxiv.org/abs/2205.06868>
+
+## What you can do
+
+-   **Latent correlation** for any mix of continuous / truncated /
+    ordinal / binary variables (`fromXtoRMixed`).
+-   **Fast Kendall’s τ** with missing-data support, in `O(n log n)`
+    (`Kendall_mixed`, backed by C++).
+-   **Latent-space regression** with asymptotic standard errors and
+    p-values (`sgclm`).
+-   **Predictions (BLUPs) of the latent variables** from observed mixed
+    data (`getLatentPreds`).
+-   **Functional PCA** of a continuous / truncated / ordinal / binary
+    functional process (`fpca.sgc.lat`).
+
+| Function | Purpose |
+|-----------------|-------------------------------------------------------|
+| `fromXtoRMixed` | Estimate the latent correlation matrix from mixed-type data |
+| `Kendall_mixed` | Fast Kendall’s τ (handles missing values) |
+| `sgclm` | Latent semiparametric Gaussian copula regression |
+| `getLatentPreds` | BLUPs of the latent Gaussian variables |
+| `fpca.sgc.lat` | Covariance estimation + FPCA for mixed-type functional data |
 
 ## Installation
 
-``` install
-devtools::install_github("DDey07/SGCTools")
+``` r
+# install.packages("devtools")
+devtools::install_github("Ddey07/SGCTools")
 ```
 
-## Example
+## Example 1 — Functional PCA of binary data
+
+We simulate a latent Gaussian process with a Matérn covariance,
+threshold it to get a **binary** functional process, and recover the
+latent covariance surface and its eigenstructure with `fpca.sgc.lat`.
 
 ``` r
 library(SGCTools)
 
-matern <- function (u, phi, kappa)
-{
-  if (is.vector(u))
-    names(u) <- NULL
-  if (is.matrix(u))
-    dimnames(u) <- list(NULL, NULL)
-  uphi <- u/phi
-  uphi <- ifelse(u > 0, (((2^(-(kappa - 1)))/ifelse(0, Inf,
-                                                    gamma(kappa))) * (uphi^kappa) * besselK(x = uphi, nu = kappa)),
+matern <- function(u, phi, kappa) {
+  uphi <- u / phi
+  uphi <- ifelse(u > 0,
+                 (2^(-(kappa - 1)) / gamma(kappa)) * (uphi^kappa) *
+                   besselK(x = uphi, nu = kappa),
                  1)
   uphi[u > 600 * phi] <- 0
-  return(uphi)
+  uphi
 }
 
-n <- 1000
-m <- 15
-delta <- 0.5 # cutoff
-cmb <- combn(m,2)
-tp = seq(0,1,length=m)
-d = abs(outer(tp,tp,"-")) # compute distance matrix, d_{ij} = |x_i - x_j|
-phi=2 # length scale
-l=0.01
-
-# Generate covariance matrix from stationary kernel
-Sigma_SE = matern(d,phi= 1/phi, kappa= 3.5) # Matern exponential kernel
-
-# generate latent process
 set.seed(1)
-y = mvtnorm::rmvnorm(n,sigma=Sigma_SE)
+n <- 1000; m <- 15
+tp <- seq(0, 1, length = m)
+d  <- abs(outer(tp, tp, "-"))            # distance matrix |s - t|
+C_true <- matern(d, phi = 1/2, kappa = 3.5)
 
-# generate observed process based on the cutoff
-z = y
-z[z>delta]=1
-z[z<=delta]=0
+y <- mvtnorm::rmvnorm(n, sigma = C_true) # latent Gaussian process
+z <- (y > 0.5) * 1                       # observed *binary* process
 
-# calculate unsmoothed latent correlation matrix without functional assumption
-R = fromXtoRMixed(X=z,use.nearPD=TRUE)
-
-# calculate unsmoothed multivariate latent principal component analysis using SGC
-pc_sgc = princomp(covmat= R$hatR,cor=TRUE)
-
-# run fpca.sgc.lat to get functional principal component analysis of binary data
-ff = fpca.sgc.lat(X=z,type="bin",argvals = tp, df= 4)
-
-# compare truth vs estimate
-par(mfrow=c(1,2))
-image(as.matrix(Sigma_SE), main="Truth")
-image(as.matrix(ff$cov), main="Estimate")
+ff <- fpca.sgc.lat(X = z, type = "bin", argvals = tp, df = 4)
 ```
 
-![](README-example-1.png)<!-- -->
+The SGC estimate recovers the latent correlation surface from binary
+observations alone:
+
+``` r
+pal <- hcl.colors(64, "YlOrRd", rev = TRUE)
+zl  <- range(c(C_true, as.matrix(ff$cov)))
+
+par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+image(tp, tp, C_true, col = pal, zlim = zl,
+      xlab = "s", ylab = "t", main = "True correlation  C(s, t)")
+image(tp, tp, as.matrix(ff$cov), col = pal, zlim = zl,
+      xlab = "s", ylab = "t", main = "SGC estimate (from binary data)")
+```
+
+<img src="README-fpca-surfaces-1.png" alt="" width="100%" />
+
+…along with interpretable eigenfunctions and a fast-decaying eigenvalue
+spectrum:
+
+``` r
+cols <- hcl.colors(3, "Dark 3")
+par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+
+matplot(tp, ff$efunctions[, 1:3], type = "l", lwd = 2, lty = 1, col = cols,
+        xlab = "t", ylab = "eigenfunction", main = "Leading eigenfunctions")
+abline(h = 0, col = "grey80")
+legend("topright", paste0("PC", 1:3), col = cols, lwd = 2, bty = "n")
+
+barplot(ff$evalues, names.arg = paste0("PC", seq_along(ff$evalues)),
+        col = "steelblue", border = NA, ylab = "eigenvalue",
+        main = "Eigenvalue spectrum")
+```
+
+<img src="README-fpca-eigen-1.png" alt="" width="100%" />
+
+## Example 2 — Latent correlation for mixed-type data
+
+The real strength of SGC is recovering a single latent correlation
+structure across variables of *different* types. Here six variables
+share a latent correlation `S`, but we only observe them as continuous,
+log-transformed continuous, binary, ordinal, and truncated measurements.
+
+``` r
+set.seed(2)
+p <- 6
+S <- clusterGeneration::rcorrmatrix(p)        # true latent correlation
+L <- mvtnorm::rmvnorm(1000, sigma = S)        # latent Gaussian
+
+X <- data.frame(
+  continuous = L[, 1],
+  lognormal  = exp(L[, 2]),                          # monotone transform
+  binary     = as.numeric(L[, 3] > 0),
+  ordinal    = as.numeric(cut(L[, 4], c(-Inf, -0.5, 0.5, Inf))) - 1,
+  truncated  = ifelse(L[, 5] > 0, L[, 5], 0),        # point mass at 0
+  binary2    = as.numeric(L[, 6] > 0.3)
+)
+
+Rhat <- fromXtoRMixed(X)$hatR                  # estimated latent correlation
+```
+
+Despite the mixed types and nonlinear marginals, the estimated latent
+correlation closely matches the truth:
+
+``` r
+corr_heat <- function(M, title) {
+  pal <- hcl.colors(64, "Blue-Red 3")
+  image(1:p, 1:p, t(M[p:1, ]), col = pal, zlim = c(-1, 1),
+        axes = FALSE, xlab = "", ylab = "", main = title)
+  axis(1, 1:p, colnames(X), las = 2, cex.axis = 0.7, tick = FALSE)
+  axis(2, 1:p, rev(colnames(X)), las = 2, cex.axis = 0.7, tick = FALSE)
+}
+par(mfrow = c(1, 2), mar = c(6, 6, 3, 1))
+corr_heat(S,    "True latent correlation")
+corr_heat(Rhat, "SGC estimate")
+```
+
+<img src="README-mixed-heatmap-1.png" alt="" width="100%" />
+
+You can then use the estimated structure directly — e.g. PCA on the
+latent correlation, or a latent regression with `sgclm`:
+
+``` r
+fit <- sgclm(binary ~ continuous + ordinal + truncated, data = X)
+fit$coef
+#>             Type   Estimate  Std.Error   t value      Pr(>|t|)    
+#> continuous  cont  0.3469964 0.04559425   7.61053  6.300286e-14 ***
+#> ordinal      ord -0.5561351 0.03817565 -14.56780  9.799023e-44 ***
+#> truncated  trunc  0.6946803 0.02749134  25.26906 2.522828e-109 ***
+```
+
+## Citation
+
+If you use `SGCTools`, please cite:
+
+> Dey, D., Ghosal, R., Merikangas, K., & Zipunnikov, V. (2024).
+> Functional Principal Component Analysis for Continuous Non-Gaussian,
+> Truncated, and Discrete Functional Data. *Statistics in Medicine*, 43,
+> 5431–5445. <doi:10.1002/sim.10240>
+
+## License
+
+GPL (\>= 3).

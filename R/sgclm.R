@@ -91,7 +91,7 @@ veclk <- lo.elim(p) %*% (diag(p^2) - jacob_k %*% t(diag.elim(p)) %*% solve(diag.
                                                                              t(diag.elim(p))) %*% diag.elim(p)) %*% jacob_k %*% t(lo.elim(p) + up.elim(p))
 V_s <- (delg %*% lo.dupl(p) %*% veclk) %*% V_g %*% t(delg %*% lo.dupl(p) %*% veclk)
 V_sl <- lo.elim(p) %*% V_s %*% t(lo.elim(p))
-deriv.beta <- deriv.b(R)
+deriv.beta <- deriv_b(R)
 V_B <- (deriv.beta %*% beta.elim(p) %*% lo.dupl(p) %*% diag(Rp[lower.tri(Rp)]) %*% veclk) %*% V_g %*% t((deriv.beta %*% beta.elim(p) %*% lo.dupl(p) %*% diag(Rp[lower.tri(Rp)]) %*% veclk))
 
 # create results data frame

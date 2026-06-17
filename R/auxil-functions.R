@@ -8,11 +8,8 @@ make_function <- function(args, body, env = parent.frame()) {
   eval(call("function", args, body), env)
 }
 
-# transformation functon
-g=function(x){log((1+x)/(1-x))}
-gprime=function(x){
-  2/(1-x^2)
-}
+# transformation function: inverse of the Fisher-style map g(x) = log((1+x)/(1-x));
+# maps the spline linear predictor onto the correlation scale (-1, 1).
 ginv = function(x){
   (exp(x)-1)/(exp(x)+1)
 }
@@ -24,28 +21,6 @@ Chat <- function(u,s,t,bs){
 }
 Chat <- Vectorize(Chat,vectorize.args = c("s","t"))
 
-
-truncate=function(y,breaks){
-  x <- y
-  for(i in 1:ncol(y)){
-    x[,i] <- cut(y[,i],c(-Inf,breaks[[i]],Inf),labels=0:length(breaks[[i]]))
-  }
-  return(x)
-}
-
-# Given a bin matrix X, n x p, returns a p x p matrix of kendall tau values
-Kendall_bin <- function(X){
-  n <- nrow(X)
-  p <- ncol(X)
-  tau <- 2*t(X)%*%(diag(n) - matrix(1/n,n,n))%*%X/(n-1)
-  return(tau)
-}
-
-# Given a a mixed (binry and continuous) matrix X, n x p, returns a p x p Kendall's tau matrix
-ties=function(x){
-  count=table(x)[which(table(x)>1)]
-  return(sum(choose(count,2)))
-}
 
 # calculate concordances
 conc_ties <- function(X){
@@ -62,9 +37,7 @@ conc_ties <- function(X){
     for (j in (i+1):d){
       keep2_l <- !is.na(X[keep1,j])
       keep2_o <- which(keep2_l[ord])
-      ids <- as.integer(rank(ord[keep2_o]) - 1)
       N[i, j] <- N[j, i] <- length(keep2_o)
-      #C[, i, j] <- C[, j, i] <- N[i,j] - 1 - countSwaps(X[ord,j])
       C[keep1[keep2_o], i, j] <- C[keep1[keep2_o], j, i] <- countSwaps(-X[keep1[ord],j][keep2_o], X[keep1[ord],i][keep2_o])
       D[keep1[keep2_o],i,j] <- D[keep1[keep2_o], j, i] <- countSwaps(X[keep1[ord],j][keep2_o], X[keep1[ord],i][keep2_o])
     }
@@ -72,17 +45,9 @@ conc_ties <- function(X){
   return(list(C=C, D=D, N=N))
 }
 
-# calculate kendall's and Ci's
-Kendall_mixed = function(X){
-  CDN <- conc_ties(X)
-  C <- CDN$C
-  D <-  CDN$D
-  N <- CDN$N
-  C_sum <- apply(C, c(2,3), function(x){sum(x, na.rm = TRUE)})
-  D_sum <- apply(D, c(2,3), function(x){sum(x, na.rm = TRUE)})
-  T2 <- (C_sum - D_sum)/(2*choose(N,2))
-  return(T2)
-}
+# NOTE: Kendall_mixed() is defined and exported in R/Kendall_mixed.R (the canonical
+# version, which sets diag(tau) <- 1 and validates input). It is intentionally not
+# redefined here; an earlier duplicate in this file shadowed the exported one.
 
 # loading ord and truncated marginal bridging functions from mixedCCA
 bridgeF_tt = getFromNamespace("bridgeF_tt", "mixedCCA")
@@ -171,12 +136,6 @@ bridge_ot=function(t,delta1,delta2){
   return(2*(term1-term2))
 }
 
-
-# bin-continuous bridging function
-bridge_bc= function(t,delta){
-  S <- cbind(c(1,t/sqrt(2)),c(t/sqrt(2),1))
-  return(c(4*(pmvnorm(upper=c(delta,0),sigma=S))-2*pnorm(delta)))
-}
 
 # Observed data to latent correlation estimation for two variables
 fromXtoR_bivariate=function(X1,X2,PR,type1="ord",deriv=TRUE,type2="ord",tol=1e-6){
@@ -313,7 +272,7 @@ preprocess_data=function(X,type=NULL,...){
 }
 
 # recover latent data from observed data
-recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,...){
+recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,ridge=0.05,...){
   n = nrow(X)
   p = ncol(X)
 
@@ -322,6 +281,15 @@ recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,...){
   }
 
   R2=lat.cov
+  # ps stability fix: ridge the latent correlation before it feeds the
+  # truncated-normal conditional moments (mtmvnorm) and the BLUP/imputation
+  # solves. A poorly-conditioned, low-rank correlation (typical of the least-
+  # informative margins, e.g. a binary component) otherwise yields extreme
+  # conditional means for individual subjects (|z| up to ~1e2-1e69), which then
+  # dominate cov(z) and collapse the downstream pfpca rank. cov2cor keeps the
+  # latent variances at 1 so the thresholds/cutoffs stay valid. ridge = 0
+  # reproduces the exact original behaviour.
+  if(ridge > 0) R2 = stats::cov2cor(as.matrix(R2) + ridge * diag(nrow(as.matrix(R2))))
 
   #Classifying column types
   if(is.null(type)){
@@ -420,30 +388,13 @@ recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,...){
 }
 
 ### covariance smooth function ###
-fb <- function(beta, s,t, Tj, Tl){
-  beta[1] + beta[2]*(s-Tj) + beta[3]*(t-Tl)
-}
-
+# tensor-product spline evaluation used by Chat()
 fb.sp <- function(u,Tj,Tl){
   t(Tj) %*% u %*% Tl
 }
 
-fb.sp.uni <- function(u,Tj){
-  as.numeric(t(Tj) %*% u)
-}
 
-
-# asumptotic variance functions
-
-entropy <- function(target) {
-  freq <- table(target)/length(target)
-  # vectorize
-  vec <- as.data.frame(freq)[,2]
-  #drop 0 to avoid NaN resulting from log2
-  vec<-vec[vec>0]
-  #compute entropy
-  -sum(vec * log2(vec))
-}
+# asymptotic variance functions
 
 lo.elim <- function(p){
   E_l <- matrix(0,nrow=p*(p-1)/2,ncol=p^2)
@@ -473,18 +424,6 @@ diag.elim <- function(p){
     E_d[i,][e[i]]=1
   }
   return(E_d)
-}
-
-lo.dupl <- function(p){
-  E_p <- matrix(0,nrow=p^2,ncol= p*(p-1)/2)
-  E_i <- diag(rep(0,p))
-  E_i[lower.tri(E_i)]=c(1:(p*(p-1)/2))
-  E_i[upper.tri(E_i)] = t(E_i)[upper.tri(E_i)]
-  e <- E_i[lower.tri(E_i)]
-  for(i in e){
-    E_p[,i][which(E_i==i)]=1
-  }
-  return(E_p)
 }
 
 lo.dupl <- function(p){
@@ -556,35 +495,13 @@ log_m <- function(B,s=svd(B)){
   return(Q %*% diag(log(l))  %*% t(Q))
 }
 
-deriv.b <- function(A,dep.v =1){
+# NOTE: named deriv_b (not deriv.b) so roxygen2 does not mistake it for an
+# S3 method of the stats::deriv generic. Internal helper used by sgclm().
+deriv_b <- function(A,dep.v =1){
   Rinv <- as.matrix(solve(A[-dep.v,-dep.v]))
   p <- ncol(A)
   deriv.beta1 <- Rinv
   deriv.beta2 <- -(kronecker(Rinv,Rinv)) %*% (kronecker(diag(p-1),A[dep.v,-dep.v]))
-  # deriv.beta1 <- solve(Rinv)
-  # deriv.beta2 <- - kronecker(t(Rinv %*% R1[-dep.v,dep.v]), Rinv)
-  deriv.beta <- rbind(deriv.beta1,deriv.beta2)
-  return(t(deriv.beta))
-}
-
-# asymptotics for multivariate coefficient
-beta.elim2 = function(p,v){
-  p1 = length(v)
-  E_b <- matrix(0,nrow=(p-p1)*p, ncol=p^2)
-  E_i <- matrix(1:p^2,ncol=p)
-  e <- c(E_i[-v,v],as.numeric(E_i[-v,-v]))
-  for(i in 1:nrow(E_b)){
-    E_b[i,][e[i]]= 1
-  }
-  return(E_b)
-}
-
-deriv.b2 = function(A,dep.v){
-  Rinv <- as.matrix(solve(A[-dep.v,-dep.v]))
-  p = ncol(A)
-  p1 = length(dep.v)
-  deriv.beta1 <- kronecker(diag(p1),Rinv)
-  deriv.beta2 <- -(kronecker(Rinv,Rinv)) %*% (kronecker(diag(p-p1),A[-dep.v,dep.v]))
   # deriv.beta1 <- solve(Rinv)
   # deriv.beta2 <- - kronecker(t(Rinv %*% R1[-dep.v,dep.v]), Rinv)
   deriv.beta <- rbind(deriv.beta1,deriv.beta2)

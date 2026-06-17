@@ -4,3 +4,5 @@
 ^README\.Rmd$
 ^\.github$
 ^Synthetic_data_analysis$
+^dev_smoke_test\.R$
+^CLEANUP_NOTES\.md$

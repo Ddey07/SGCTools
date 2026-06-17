@@ -1,7 +1,7 @@
 Package: SGCTools
 Type: Package
 Title: Analysis tools for multivariate mixed data and continous/truncated/discrete functional data using Semiparametric Gaussian Copula (SGC)
-Version: 1.1.2
+Version: 1.1.3
 Authors@R: c(
     person(given = "Debangan",
            family = "Dey",
@@ -24,28 +24,25 @@ Authors@R: c(
 Maintainer: Debangan Dey <ddey1@alumni.jh.edu>
 Description: (a) Estimates latent correlation for multivariate mixed data types; continuous, truncated, ordinal (any number of categories), and binary, (b) Covariance estimation and functional principal components 
     analysis for continous, truncated, discrete (ordinal/binary) functional data. The methods are described in 
-    Dey, Zipunnikov (2022) <https://arxiv.org/abs/2205.06868> and 
-    Dey, Ghosal, Merikangas, and Zipunnikov (2023) <https://arxiv.org/abs/2306.15084>
+    Dey, Zipunnikov (2022) <https://arxiv.org/abs/2205.06868> and
+    Dey, Ghosal, Merikangas, and Zipunnikov (2024) <doi:10.1002/sim.10240>
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
     Matrix,
-    clusterGeneration, 
     fMultivar,
     fda,
     minpack.lm,
     mixedCCA,
     mvtnorm,
-    mnormt,
     numDeriv,
-    pcaPP,
-    refund,
-    tidyverse,
     tmvtnorm,
     Rcpp (>= 1.0.10)
+Suggests:
+    clusterGeneration
 LinkingTo: Rcpp
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 URL: https://github.com/Ddey07/SGCTools
 BugReports: https://github.com/Ddey07/SGCTools/issues

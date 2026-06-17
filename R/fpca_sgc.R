@@ -25,7 +25,7 @@
 #'       \item{vcov:}{Variance-covariance matrix of the estimatd parameters from the nls algorithm}
 #' }
 #' @references
-#' Dey D., Ghosal R., Merikangas K., Zipunnikov V. (2023) "Covariance Estimation and Principal Component Analysis for Mixed-Type Functional Data with application to mHealth in Mood Disorders" <https://arxiv.org/abs/2306.15084>
+#' Dey D., Ghosal R., Merikangas K., Zipunnikov V. (2024) "Functional Principal Component Analysis for Continuous Non-Gaussian, Truncated, and Discrete Functional Data" Statistics in Medicine, 43, 5431-5445. \doi{10.1002/sim.10240}
 #' @export
 #' @import stats
 #' @importFrom Matrix nearPD
@@ -55,6 +55,11 @@ fpca.sgc.lat = function(X, type,argvals=NULL, df = 5, T_out= NULL, npc = 4, scor
   # Check if npc is a positive integer
   if (!is.numeric(npc) || npc <= 0 || npc != round(npc)) {
     stop("The 'npc' parameter must be a positive integer.")
+  }
+
+  # Check that 'type' is a single supported variable type
+  if (length(type) != 1 || !type %in% c("cont", "bin", "ord", "trunc")) {
+    stop("'type' must be one of \"cont\", \"bin\", \"ord\", \"trunc\".")
   }
 
 
@@ -208,9 +213,9 @@ fpca.sgc.lat = function(X, type,argvals=NULL, df = 5, T_out= NULL, npc = 4, scor
   # run NLS optimization
   obj_df_cont = obj_df_cont[complete.cases(obj_df_cont),]
   if(weights==TRUE){
-  ns0 <- nls(eunsc_cont,data=obj_df_cont,start=init, control=list(printEval=TRUE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32),weights= obj_df_cont$njl)
+  ns0 <- nls(eunsc_cont,data=obj_df_cont,start=init, control=list(printEval=FALSE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32),weights= obj_df_cont$njl)
   } else{
-    ns0 <- nls(eunsc_cont,data=obj_df_cont,start=init, control=list(printEval=TRUE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32))
+    ns0 <- nls(eunsc_cont,data=obj_df_cont,start=init, control=list(printEval=FALSE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32))
   }
   ns1 <- ns0
 
@@ -225,9 +230,9 @@ fpca.sgc.lat = function(X, type,argvals=NULL, df = 5, T_out= NULL, npc = 4, scor
     # run NLS optimization
     obj_df = obj_df[complete.cases(obj_df),]
     if(weights==TRUE){
-    ns1 <- nlsLM(eunsc,data=obj_df,start=init, control=list(printEval=TRUE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32), trace = TRUE,  weights = obj_df$njl)
+    ns1 <- nlsLM(eunsc,data=obj_df,start=init, control=list(printEval=FALSE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32), trace = FALSE,  weights = obj_df$njl)
     } else {
-      ns1 <- nlsLM(eunsc,data=obj_df,start=init, control=list(printEval=TRUE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32), trace = TRUE)
+      ns1 <- nlsLM(eunsc,data=obj_df,start=init, control=list(printEval=FALSE,warnOnly=TRUE, tol = 1e-03, minFactor = 1/32), trace = FALSE)
     }
   }
 
