@@ -16,8 +16,11 @@
 #' @example man/examples/fromXtoR_ex.R
 getLatentPreds = function(X, type = NULL, lat.cov.est, impute.missing = TRUE, ridge = 0.05,
                           pmv_maxpts = 25000L, pmv_abseps = 1e-3){
-  PRx = preprocess_data(X)
+  # build cutoffs/transformations with the SUPPLIED types (previously re-guessed
+  # from the data, which could disagree with `type` for sparse columns)
+  PRx = preprocess_data(X, type = type)
   PR=PRx$features
+  type = PRx$type
   L0 = X
   for(i in 1:nrow(X)){
     L0[i,]=recover_row(i,X=X,lat.cov = lat.cov.est, feature=PR, type = type, impute = impute.missing,

@@ -238,7 +238,26 @@ npn.f.est <- function(x){
   return(f.hat)
 }
 
+# Ordinal cutoffs qnorm(1 - P(x >= l)), l = 1..K, over the full level set.
+# A level absent from x gives a repeated cutoff (zero-width interval); an empty
+# top level gives +Inf, which is capped at 8 (a standard-normal quantile beyond
+# any finite sample) so that the bridge functions stay finite. Identical to the
+# previous construction whenever every level 0..K is observed.
+ord_cutoffs <- function(x, K){
+  d <- vapply(seq_len(K), function(l) qnorm(1 - mean(x >= l, na.rm = TRUE)), numeric(1))
+  d[is.infinite(d)] <- sign(d[is.infinite(d)]) * 8
+  d
+}
+
 # Preprocess observed data - calculate cutoffs, estimate transformation functions
+#
+# `type` (length ncol(X)) is used as supplied; it is guessed from the data only
+# when NULL. Ordinal variables must be coded 0, 1, ..., (l-1) (see getLatentPreds).
+# Ordinal cutoffs are built over the full level set 0..K, where K is the largest
+# observed ordinal code in X, not only over the levels that happen to be observed
+# in a given column. A level that is absent from a column then gets a zero-width
+# interval (two equal cutoffs) instead of shifting every later cutoff, which
+# previously produced NA bounds in recover_row() for sparse columns.
 preprocess_data=function(X,type=NULL,...){
   n = nrow(X)
   p = ncol(X)
@@ -252,19 +271,41 @@ preprocess_data=function(X,type=NULL,...){
     type[bin_id] <- "bin"
     type[ord_id] <- "ord"
     type[trunc_id] <- "trunc"
+  } else {
+    if(length(type) != p) stop("'type' must have length ncol(X) = ", p, " (got ", length(type), ").")
+    bad <- setdiff(unique(type), c("cont","trunc","ord","bin"))
+    if(length(bad)) stop("unknown 'type' value(s): ", paste(bad, collapse = ", "))
   }
   type1 <- type
+
+  ord_cols <- which(type == "ord")
+  K <- 0
+  if(length(ord_cols)){
+    xo <- as.numeric(as.matrix(X[, ord_cols, drop = FALSE]))
+    xo <- xo[!is.na(xo)]
+    if(length(xo) && (any(xo < 0) || any(xo != round(xo))))
+      stop("ordinal variables must be coded as non-negative integers 0, 1, ..., (l-1).")
+    if(length(xo)) K <- max(xo)
+  }
+  bin_cols <- which(type == "bin")
+  if(length(bin_cols)){
+    xb <- as.numeric(as.matrix(X[, bin_cols, drop = FALSE])); xb <- xb[!is.na(xb)]
+    if(length(xb) && !all(xb %in% c(0, 1))) stop("binary variables must be coded as 0/1.")
+  }
+
+  # transformation estimate; NULL for a column with no observed value (never used then)
+  fn_or_null <- function(x) if(any(!is.na(x))) npn.f.est(x) else NULL
+
   features <- list()
   for(i in 1:ncol(X)){
     if(type[i]=="cont"){
-      features[[i]]=list(fn=npn.f.est(X[,i]))
+      features[[i]]=list(fn=fn_or_null(X[,i]))
     } else if(type[i]=="trunc"){
-      features[[i]]=list(fn=npn.f.est(X[,i]),cutoff=c(-Inf,qnorm(mean(X[,i]==0,na.rm=TRUE))))
+      features[[i]]=list(fn=fn_or_null(X[,i]),cutoff=c(-Inf,qnorm(mean(X[,i]==0,na.rm=TRUE))))
     } else if(type[i]=="bin"){
       features[[i]]=list(cutoff=c(-Inf,qnorm(1-mean(X[,i],na.rm=TRUE)),Inf))
     } else if(type[i]=="ord"){
-      cats <- sort(unique(na.omit(X[,i])))
-      hatdelta1 <- unlist(lapply(cats,function(x){qnorm(1-mean(X[,i]>=x, na.rm=TRUE))}))[-1]
+      hatdelta1 <- vapply(seq_len(K), function(l) qnorm(1-mean(X[,i]>=l, na.rm=TRUE)), numeric(1))
       features[[i]]=list(cutoff=c(-Inf,hatdelta1,Inf))
     }
   }
@@ -278,7 +319,7 @@ recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,ridge=0.0
   p = ncol(X)
 
   if(is.null(feature)){
-    feature=preprocess_data(X)
+    feature=preprocess_data(X, type = type)$features
   }
 
   R2=lat.cov

@@ -107,19 +107,16 @@ fpca.sgc.lat = function(X, type,argvals=NULL, df = 5, T_out= NULL, npc = 4, scor
     obj_df_colnames <- c("k",paste0("Tj",1:ncol(bs.argvals)), paste0("Tl",1:ncol(bs.argvals)),"dj", "dl","njl")
 
   } else if(type == "ord"){
+    xo <- as.numeric(X)[!is.na(as.numeric(X))]
+    if(any(xo < 0) || any(xo != round(xo))) stop("ordinal data must be coded as non-negative integers 0, 1, ..., (l-1).")
+    K_ord <- max(xo)
+    if(K_ord < 1) stop("ordinal data show a single level; at least two levels are needed.")
     fjl.df <- function(j, l, data = X) {
       Tj = bs.argvals[j, ]
       Tl = bs.argvals[l, ]
-      cats_j <- sort(unique(na.omit(data[, j])))
-      hatdelta_j <- unlist(lapply(cats_j, function(x) {
-        qnorm(1 - mean(data[, j] >= x, na.rm = TRUE))
-      }))[-1]
-      ncats_j = length(cats_j)
-      cats_l <- sort(unique(na.omit(data[, l])))
-      hatdelta_l <- unlist(lapply(cats_l, function(x) {
-        qnorm(1 - mean(data[, l] >= x, na.rm = TRUE))
-      }))[-1]
-      ncats_l = length(cats_l)
+      # cutoffs over the full level set 1..K_ord (same length for every column)
+      hatdelta_j <- ord_cutoffs(data[, j], K_ord)
+      hatdelta_l <- ord_cutoffs(data[, l], K_ord)
 
       # count number of observations
       njl <- sum(!is.na(data[,j]*data[,l]))
@@ -136,7 +133,9 @@ fpca.sgc.lat = function(X, type,argvals=NULL, df = 5, T_out= NULL, npc = 4, scor
     }
 
     # fix bridging functions and create NLS formula
-    ncutoff <- length(sort(unique(na.omit(X[,1]))))-1
+    # number of cutoffs = largest observed code over ALL columns (previously taken
+    # from column 1 only, which broke when column 1 did not show every level)
+    ncutoff <- K_ord
     # defining bridging functions for our case
     l <- vector(mode="list",length =2*ncutoff + 1)
     names(l) = c("t",paste0("dj",1:ncutoff),paste0("dl",1:ncutoff))
@@ -288,7 +287,7 @@ fpca.sgc.lat = function(X, type,argvals=NULL, df = 5, T_out= NULL, npc = 4, scor
   }else if(scores==TRUE & impute == FALSE & dense == FALSE){
     L01 = getLatentPreds(X,type=rep(type,m), lat.cov.est = Chat.grid0, impute.missing = FALSE)
     res$latent = L01
-    res$scores = t(sapply(1:n,function(i){sub= which(!is.na(X[i,])); cov_sub = Chat.grid0[sub,sub]; as.numeric(diag(ee0$values[1:npc]) %*% t(ee0$vectors[sub,1:npc]) %*% solve(cov_sub) %*% L01[i,sub])}))
+    res$scores = t(sapply(1:n,function(i){sub= which(!is.na(X[i,])); if(length(sub)==0) return(rep(NA_real_, npc)); cov_sub = as.matrix(Chat.grid0[sub,sub,drop=FALSE]); as.numeric(diag(ee0$values[1:npc], nrow=npc) %*% t(ee0$vectors[sub,1:npc,drop=FALSE]) %*% solve(cov_sub) %*% L01[i,sub])}))
   }
   return(res)
 }

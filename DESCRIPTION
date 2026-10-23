@@ -1,7 +1,7 @@
 Package: SGCTools
 Type: Package
 Title: Analysis tools for multivariate mixed data and continous/truncated/discrete functional data using Semiparametric Gaussian Copula (SGC)
-Version: 1.1.3
+Version: 1.1.4
 Authors@R: c(
     person(given = "Debangan",
            family = "Dey",
@@ -40,7 +40,9 @@ Imports:
     tmvtnorm,
     Rcpp (>= 1.0.10)
 Suggests:
-    clusterGeneration
+    clusterGeneration,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
 LinkingTo: Rcpp
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
