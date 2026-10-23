@@ -272,7 +272,8 @@ preprocess_data=function(X,type=NULL,...){
 }
 
 # recover latent data from observed data
-recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,ridge=0.05,...){
+recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,ridge=0.05,
+                     pmv_maxpts=25000L,pmv_abseps=1e-3,...){
   n = nrow(X)
   p = ncol(X)
 
@@ -342,7 +343,7 @@ recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,ridge=0.0
       Z1[O_B]=mtmvnorm(sigma = cond.sigma, mean=cond.mean,
                        lower = lb, upper=ub,
                        doComputeVariance=FALSE,
-                       pmvnorm.algorithm=GenzBretz()) $tmean
+                       pmvnorm.algorithm=GenzBretz(maxpts=pmv_maxpts, abseps=pmv_abseps)) $tmean
     }
     #Imputing data
     if(impute==TRUE){
@@ -375,7 +376,7 @@ recover_row=function(i,X=Z1,lat.cov,feature=NULL,type=NULL,impute=TRUE,ridge=0.0
       Z1[O_B]=mtmvnorm(sigma = cond.sigma, mean=cond.mean,
                        lower = lb, upper=ub,
                        doComputeVariance=FALSE,
-                       pmvnorm.algorithm=GenzBretz()) $tmean
+                       pmvnorm.algorithm=GenzBretz(maxpts=pmv_maxpts, abseps=pmv_abseps)) $tmean
     }
     #Imputing data
     if(impute==TRUE){
