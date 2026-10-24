@@ -1,7 +1,7 @@
 Package: SGCTools
 Type: Package
 Title: Analysis tools for multivariate mixed data and continous/truncated/discrete functional data using Semiparametric Gaussian Copula (SGC)
-Version: 1.1.4
+Version: 1.1.5
 Authors@R: c(
     person(given = "Debangan",
            family = "Dey",

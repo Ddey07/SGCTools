@@ -27,8 +27,8 @@ void insertionSort(double* y, double* data, int* ids, int* swapCounts, size_t le
     for(; j < maxJ && y[j + 1] < tempVal; ++j) {
       y[j] = y[j + 1];
       ids[j] = ids[j + 1];
-      if(data[ids[j]] != data[ids[j+1]]){
-        swapCounts[ids[j + 1]] += 1;
+      if(data[ids[j]] != data[tempId]){
+        swapCounts[ids[j]] += 1;
       }
     }
     
