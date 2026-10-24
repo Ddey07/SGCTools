@@ -62,7 +62,7 @@ p <- ncol(Xd)
 n <- nrow(Xd)
 
 # calculate variance of Kendall's Tau
-CDN <- SGCTools:::conc_ties(Xd)
+CDN <- conc_ties(Xd)
 C <- CDN$C
 D <-  CDN$D
 N <- CDN$N

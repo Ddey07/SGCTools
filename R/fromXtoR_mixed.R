@@ -7,9 +7,9 @@
 #' @param use.nearPD A logical value indicating whether to use \link[Matrix]{nearPD} or not when the resulting latent correlation matrix is not positive definite.
 #' @param deriv A logical value indicating whether to calculate point-wise derivatives of the bridging functions useful for calculating the asymptotic confidence interval of latent correlations
 #' @return \code{fromXtoRmixed} returns
-#' \itemize{
-#'       \item{hatR: }{the estimated latent correlation matrix}
-#'       \item{hatRprime: }{if (deriv = TRUE), returns the pointwise derivative of the bridging function with respect to latent correlation}
+#' \describe{
+#'       \item{hatR}{the estimated latent correlation matrix}
+#'       \item{hatRprime}{if (deriv = TRUE), returns the pointwise derivative of the bridging function with respect to latent correlation}
 #' }
 #' @references
 #' Dey D., Zipunnikov V. (2022) "Semiparametric Gaussian Copula Regression modeling for Mixed Data Types (SGCRM)" <https://arxiv.org/abs/2205.06868>

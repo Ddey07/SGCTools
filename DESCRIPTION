@@ -22,10 +22,12 @@ Authors@R: c(
            role = c("ctb"),
            email = "vzipunn1@jhu.edu"))
 Maintainer: Debangan Dey <ddey1@alumni.jh.edu>
-Description: (a) Estimates latent correlation for multivariate mixed data types; continuous, truncated, ordinal (any number of categories), and binary, (b) Covariance estimation and functional principal components 
-    analysis for continous, truncated, discrete (ordinal/binary) functional data. The methods are described in 
-    Dey, Zipunnikov (2022) <https://arxiv.org/abs/2205.06868> and
-    Dey, Ghosal, Merikangas, and Zipunnikov (2024) <doi:10.1002/sim.10240>
+Description: Estimates the latent correlation of multivariate mixed data
+    (continuous, truncated, ordinal with any number of categories, and binary),
+    and performs covariance estimation and functional principal component analysis
+    for continuous, truncated and discrete (ordinal or binary) functional data. The
+    methods are described in Dey and Zipunnikov (2022) <doi:10.48550/arXiv.2205.06868>
+    and Dey, Ghosal, Merikangas and Zipunnikov (2024) <doi:10.1002/sim.10240>.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

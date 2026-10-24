@@ -14,15 +14,15 @@
 #' @param impute A logical variable indicating whether missing values should be imputed before calculating FPC scores.
 #' @param weights A logical variable indicating whether objective function needs to be weighted inversely proportional to sample size for each pair
 #' @return \code{fpca.sgc.lat} returns
-#' \itemize{
-#'       \item{cov: }{the estimated m by m covariance matrix}
-#'       \item{cov_out:}{If T_out is provided, the output covariance matrix calculated on the T_out grid}
-#'       \item{efunctions: }{first npc number of eigenfunctions}
-#'       \item{evalues: }{first npc number of eigenvalues}
-#'       \item{latent: }{predictions of latent continuous trajectories, if \code{scores == TRUE}}
-#'       \item{scores: }{first npc number of PC scores, if \code{scores == TRUE}}
-#'       \item{par: }{Estimated parameters from the nls algorithm}
-#'       \item{vcov:}{Variance-covariance matrix of the estimatd parameters from the nls algorithm}
+#' \describe{
+#'       \item{cov}{the estimated m by m covariance matrix}
+#'       \item{cov_out}{If T_out is provided, the output covariance matrix calculated on the T_out grid}
+#'       \item{efunctions}{first npc number of eigenfunctions}
+#'       \item{evalues}{first npc number of eigenvalues}
+#'       \item{latent}{predictions of latent continuous trajectories, if \code{scores == TRUE}}
+#'       \item{scores}{first npc number of PC scores, if \code{scores == TRUE}}
+#'       \item{par}{Estimated parameters from the nls algorithm}
+#'       \item{vcov}{Variance-covariance matrix of the estimatd parameters from the nls algorithm}
 #' }
 #' @references
 #' Dey D., Ghosal R., Merikangas K., Zipunnikov V. (2024) "Functional Principal Component Analysis for Continuous Non-Gaussian, Truncated, and Discrete Functional Data" Statistics in Medicine, 43, 5431-5445. \doi{10.1002/sim.10240}

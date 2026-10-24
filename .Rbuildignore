@@ -6,3 +6,5 @@
 ^Synthetic_data_analysis$
 ^dev_smoke_test\.R$
 ^CLEANUP_NOTES\.md$
+^README-.*\.png$
+^Readme\.md$

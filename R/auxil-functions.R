@@ -1,5 +1,7 @@
 # import function from namespace
-fromKtoR_mixed = getFromNamespace("fromKtoR_mixed", "mixedCCA")
+# looked up at call time: copying the mixedCCA function object into this namespace
+# at build time made R CMD check see its internal mnormt:: calls (undeclared import)
+fromKtoR_mixed = function(...) utils::getFromNamespace("fromKtoR_mixed", "mixedCCA")(...)
 
 # Make function using argument and body
 make_function <- function(args, body, env = parent.frame()) {
@@ -50,7 +52,7 @@ conc_ties <- function(X){
 # redefined here; an earlier duplicate in this file shadowed the exported one.
 
 # loading ord and truncated marginal bridging functions from mixedCCA
-bridgeF_tt = getFromNamespace("bridgeF_tt", "mixedCCA")
+bridgeF_tt = function(...) utils::getFromNamespace("bridgeF_tt", "mixedCCA")(...)
 bridgeF_cc = function(r){2/pi * asin(r)}
 
 bridgeF_bb <- function (r, zratio1, zratio2)

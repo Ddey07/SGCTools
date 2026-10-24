@@ -43,15 +43,15 @@ fpca.sgc.lat(
 }
 \value{
 \code{fpca.sgc.lat} returns
-\itemize{
-\item{cov: }{the estimated m by m covariance matrix}
-\item{cov_out:}{If T_out is provided, the output covariance matrix calculated on the T_out grid}
-\item{efunctions: }{first npc number of eigenfunctions}
-\item{evalues: }{first npc number of eigenvalues}
-\item{latent: }{predictions of latent continuous trajectories, if \code{scores == TRUE}}
-\item{scores: }{first npc number of PC scores, if \code{scores == TRUE}}
-\item{par: }{Estimated parameters from the nls algorithm}
-\item{vcov:}{Variance-covariance matrix of the estimatd parameters from the nls algorithm}
+\describe{
+\item{cov}{the estimated m by m covariance matrix}
+\item{cov_out}{If T_out is provided, the output covariance matrix calculated on the T_out grid}
+\item{efunctions}{first npc number of eigenfunctions}
+\item{evalues}{first npc number of eigenvalues}
+\item{latent}{predictions of latent continuous trajectories, if \code{scores == TRUE}}
+\item{scores}{first npc number of PC scores, if \code{scores == TRUE}}
+\item{par}{Estimated parameters from the nls algorithm}
+\item{vcov}{Variance-covariance matrix of the estimatd parameters from the nls algorithm}
 }
 }
 \description{
@@ -67,8 +67,9 @@ matern <- function (u, phi, kappa)
   if (is.matrix(u))
     dimnames(u) <- list(NULL, NULL)
   uphi <- u/phi
-  uphi <- ifelse(u > 0, (((2^(-(kappa - 1)))/ifelse(0, Inf,
-                                                    gamma(kappa))) * (uphi^kappa) * besselK(x = uphi, nu = kappa)),
+  uphi <- ifelse(u > 0,
+                 ((2^(-(kappa - 1))) / ifelse(0, Inf, gamma(kappa))) *
+                   (uphi^kappa) * besselK(x = uphi, nu = kappa),
                  1)
   uphi[u > 600 * phi] <- 0
   return(uphi)
